@@ -1,0 +1,108 @@
+#include "stm8s.h"
+#include "stm8s_clk.h"
+#include "stdio.h"
+#include "stdlib.h"
+#include "aes.h"
+
+extern volatile u16 overflows;
+
+int main(void)
+{
+	u8 init_plain_text[] = {
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	};
+	u8 plain_text[16], cipher_text[32];
+	u8 key[] = "Uber strong key!";
+
+	volatile u16 t_begin, t_end;
+	int i, j;
+
+	CLK_HSIPrescalerConfig(CLK_PRESCALER_HSIDIV1);
+
+	UART2_DeInit();
+	UART2_Init((u32) 9600, UART2_WORDLENGTH_8D, UART2_STOPBITS_1, UART2_PARITY_NO, UART2_SYNCMODE_CLOCK_DISABLE, UART2_MODE_TXRX_ENABLE);
+
+	printf("\n\rSTART\n\r");
+
+	/* overflows = 0;
+	TIM1_DeInit();
+	TIM1_TimeBaseInit(2, TIM1_COUNTERMODE_UP, U16_MAX, 0);
+	TIM1_ITConfig(TIM1_IT_UPDATE, ENABLE);
+	enableInterrupts();
+
+	printf("\n\rEncryption\n\r");
+
+	TIM1_Cmd(ENABLE);
+	TIM1_SetCounter(0);
+	t_begin = TIM1_GetCounter();
+	ecb_aes_encrypt(init_plain_text, plain_text_size, cipher_text, key);
+	t_end = TIM1_GetCounter();
+	TIM1_Cmd(DISABLE);
+	disableInterrupts();
+
+	printf("Begin: \t\t%u\n\rEnd: \t\t%u\n\rOverflows: \t%u\n\r", t_begin, t_end, overflows);
+
+	overflows = 0;
+	TIM1_DeInit();
+	TIM1_TimeBaseInit(2, TIM1_COUNTERMODE_UP, U16_MAX, 0);
+	TIM1_ITConfig(TIM1_IT_UPDATE, ENABLE);
+	enableInterrupts();
+
+	printf("\n\rDecryption\n\r");
+
+	TIM1_Cmd(ENABLE);
+	TIM1_SetCounter(0);
+	t_begin = TIM1_GetCounter();
+	ecb_aes_decrypt(init_cipher_text, cipher_text_size, plain_text, key);
+	t_end = TIM1_GetCounter();
+	TIM1_Cmd(DISABLE);
+	disableInterrupts();
+
+	printf("Begin: \t\t%u\n\rEnd: \t\t%u\n\rOverflows: \t%u\n\r", t_begin, t_end, overflows); */
+
+	for (i = 0; i < 256; ++i) {
+		init_plain_text[15] = i;
+
+		printf("I: %d\n\r", i);
+
+		printf("PLAIN TEXT:  ");
+		for (j = 0; j < 16; ++j)
+			printf("%02x", (int) init_plain_text[j]);
+		printf("\n\r");
+
+		ecb_aes_encrypt(init_plain_text, 16, cipher_text, key);
+
+		printf("CIPHER TEXT: ");
+		for (j = 0; j < 32; ++j)
+			printf("%02x", (int) cipher_text[j]);
+		printf("\n\r");
+
+		ecb_aes_decrypt(cipher_text, 32, plain_text, key);
+
+		printf("PLAIN TEXT:  ");
+		for (j = 0; j < 16; ++j) {
+			printf("%02x", (int) plain_text[j]);
+			if (init_plain_text[j] != plain_text[j]) {
+				printf(" ERROR");
+				break;
+			}
+		}
+		printf("\n\r\n\r");
+	}
+
+	printf("\n\rSTOP\n\r");
+
+	for (;;)
+		nop();
+
+	return 0;
+}
+
+char putchar(char c)
+{
+	UART2_SendData8(c);
+	while ((UART2->SR & UART2_SR_TXE ) != UART2_SR_TXE );
+
+	return c;
+}
