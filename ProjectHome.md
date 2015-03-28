@@ -1,0 +1,1 @@
+Implementation of the Advanced Encryption Standard with a 128 bits key and Electronic Code Book mode of operation. The padding method follows the RFC 5652.
